@@ -2,7 +2,7 @@ using Godot;
 
 namespace GoriantQuests.scripts;
 
-public partial class Main : Node2D
+public partial class Main : Node
 {
 	[Export]
 	public PackedScene MobScene { get; set; }
@@ -12,7 +12,7 @@ public partial class Main : Node2D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		NewGame();
+		// NewGame();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -24,10 +24,15 @@ public partial class Main : Node2D
 	{
 		GetNode<Timer>("MobTimer").Stop();
 		GetNode<Timer>("ScoreTimer").Stop();
+		GetNode<Hud>("HUD").ShowGameOver();
+		
+		GetNode<AudioStreamPlayer>("Music").Stop();
+		GetNode<AudioStreamPlayer>("DeathSound").Play();
 	}
 	
 	public void NewGame()
 	{
+		GetNode<AudioStreamPlayer>("Music").Play();
 		_score = 0;
 
 		var player = GetNode<Player>("Player");
@@ -35,11 +40,18 @@ public partial class Main : Node2D
 		player.Start(startPosition.Position);
 
 		GetNode<Timer>("StartTimer").Start();
+
+		var hud = GetNode<Hud>("HUD");
+		hud.UpdateScore(_score);
+		hud.ShowMessage("Get Ready!");
+		
+		GetTree().CallGroup("mobs", Node.MethodName.QueueFree);
 	}
 	
 	private void OnScoreTimerTimeout()
 	{
 		_score++;
+		GetNode<Hud>("HUD").UpdateScore(_score);
 	}
 	
 	private void OnStartTimerTimeout()
