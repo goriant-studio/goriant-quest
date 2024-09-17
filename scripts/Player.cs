@@ -1,13 +1,19 @@
 using Godot;
 
+namespace GoriantQuests.scripts;
+
 public partial class Player : Area2D
 {
 	[Export] public int Speed { get; set; } = 400;
-	private Vector2 ScreenSize;
+	[Signal]
+	public delegate void HitEventHandler();
+	
+	private Vector2 _screenSize;
 
 	public override void _Ready()
 	{
-		ScreenSize = GetViewportRect().Size;
+		_screenSize = GetViewportRect().Size;
+		Hide();
 	}
 
 	// Called when the node enters the scene tree for the first time.
@@ -43,8 +49,8 @@ public partial class Player : Area2D
 		}
 		Position += velocity * (float)delta;
 		Position = new Vector2( 
-			x: Mathf.Clamp(Position.X,0,ScreenSize.X),
-			y: Mathf.Clamp(Position.Y,0,ScreenSize.Y)
+			x: Mathf.Clamp(Position.X,0,_screenSize.X),
+			y: Mathf.Clamp(Position.Y,0,_screenSize.Y)
 		);
 
 		if(velocity.X != 0)
@@ -59,5 +65,21 @@ public partial class Player : Area2D
 			animatedSprite2D.Animation = "up";
 			animatedSprite2D.FlipV = velocity.Y > 0;
 		}
+	}
+
+	public void Start(Vector2 position)
+	{
+		Position = position;
+		Show();
+		GetNode<CollisionShape2D>("CollisionShape2D").Disabled = false;
+	}
+	
+	private void OnBodyEntered(Node2D body)
+	{
+		Hide();
+		EmitSignal(SignalName.Hit);
+		// Must be deferred as we can't change physics properties on a physics callback.
+		GetNode<CollisionShape2D>("CollisionShape2D")
+			.SetDeferred(CollisionShape2D.PropertyName.Disabled, true);
 	}
 }
